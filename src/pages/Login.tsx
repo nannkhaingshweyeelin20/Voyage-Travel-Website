@@ -34,7 +34,7 @@ export default function Login() {
           className="max-w-md w-full bg-white rounded-[40px] shadow-xl p-12 border border-gray-100"
         >
           <div className="text-center mb-10">
-            <h1 className="text-4xl font-serif text-gray-900 mb-3">Welcome Back..</h1>
+            <h1 className="text-4xl font-serif text-gray-900 mb-3">Welcome Back</h1>
             <p className="text-gray-500">Sign in to continue planning your dream trip.</p>
           </div>
 
