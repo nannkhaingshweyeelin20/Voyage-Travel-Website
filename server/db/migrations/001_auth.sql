@@ -1,0 +1,16 @@
+CREATE TABLE IF NOT EXISTS users (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(120) NOT NULL,
+  email VARCHAR(190) NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  role ENUM('user', 'admin') NOT NULL DEFAULT 'user',
+  phone VARCHAR(30) NULL,
+  profile_image VARCHAR(512) NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  last_login_at TIMESTAMP NULL DEFAULT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_users_email (email),
+  KEY idx_users_role (role),
+  KEY idx_users_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -1,0 +1,120 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Fields:
+    //   - uid: string (required)
+    //   - email: string (required)
+    //   - displayName: string
+    //   - role: string (required, 'user' | 'admin')
+    //   - createdAt: timestamp
+    //
+    // Collection: destinations
+    // Fields:
+    //   - name: string (required)
+    //   - type: string (required, 'hotel' | 'restaurant' | 'attraction')
+    //   - description: string
+    //   - location: string (required)
+    //   - imageUrl: string
+    //   - priceRange: string
+    //   - rating: number
+    //
+    // Collection: itineraries
+    // Fields:
+    //   - userId: string (required)
+    //   - title: string (required)
+    //   - destination: string
+    //   - startDate: string
+    //   - endDate: string
+    //   - days: list
+    //   - status: string
+    //
+    // Collection: bookings
+    // Fields:
+    //   - userId: string (required)
+    //   - itineraryId: string (required)
+    //   - status: string (required)
+    //   - totalPrice: number
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         (request.auth.token.email == "nann@hipgroup.co" && request.auth.token.email_verified == true));
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'role']) &&
+             data.uid is string &&
+             data.email is string &&
+             data.role in ['user', 'admin'];
+    }
+
+    function isValidDestination(data) {
+      return data.keys().hasAll(['name', 'type', 'location']) &&
+             data.name is string && data.name.size() < 100 &&
+             data.type in ['hotel', 'restaurant', 'attraction'] &&
+             data.location is string;
+    }
+
+    function isValidItinerary(data) {
+      return data.keys().hasAll(['userId', 'title']) &&
+             data.userId is string &&
+             data.title is string && data.title.size() < 100;
+    }
+
+    function isValidBooking(data) {
+      return data.keys().hasAll(['userId', 'itineraryId', 'status']) &&
+             data.userId is string &&
+             data.itineraryId is string &&
+             data.status in ['pending', 'confirmed', 'cancelled'];
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) && 
+                    (isOwner(userId) && request.resource.data.role == 'user' || isAdmin());
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) && 
+                    (isOwner(userId) && request.resource.data.role == resource.data.role || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /destinations/{destId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin() && isValidDestination(request.resource.data);
+    }
+
+    match /itineraries/{itineraryId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && isValidItinerary(request.resource.data) && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && isValidItinerary(request.resource.data) && 
+                    (resource.data.userId == request.auth.uid || isAdmin());
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    match /bookings/{bookingId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && isValidBooking(request.resource.data) && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && (isAdmin() || (resource.data.userId == request.auth.uid && request.resource.data.status == resource.data.status));
+      allow delete: if isAdmin();
+    }
+  }
+}
