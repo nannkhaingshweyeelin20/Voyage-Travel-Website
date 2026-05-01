@@ -83,7 +83,7 @@ export default function AdminContactManagementPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#eef2f8] pt-28 pb-12 px-6">
+    <div className="min-h-screen bg-[#eef2f8] pt-28 pb-12 px-4 sm:px-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <AnimatePresence>
           {newToast && (
@@ -112,7 +112,7 @@ export default function AdminContactManagementPage() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Admin Contact Center</p>
-            <h1 className="text-4xl font-black text-slate-900 mt-2">Contact Us Management</h1>
+            <h1 className="text-3xl sm:text-4xl font-black text-slate-900 mt-2">Contact Us Management</h1>
           </div>
           <button
             onClick={refresh}
@@ -150,14 +150,14 @@ export default function AdminContactManagementPage() {
 
         <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
           <div className="px-6 py-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
-            <div className="relative">
+            <div className="relative w-full sm:w-auto">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by name or email"
-                className="pl-9 pr-4 py-2.5 w-64 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                className="w-full sm:w-64 pl-9 pr-4 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-200"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -177,8 +177,45 @@ export default function AdminContactManagementPage() {
           </div>
 
           <div className="grid xl:grid-cols-[1.2fr_0.8fr] min-h-[520px]">
-            <div className="border-r border-slate-100 overflow-auto">
-              <table className="w-full text-left min-w-[720px]">
+            <div className="xl:border-r border-slate-100 overflow-auto">
+              <div className="md:hidden divide-y divide-slate-100">
+                {filtered.map((msg) => (
+                  <div key={msg.id} className={`px-4 py-4 transition ${selectedId === msg.id ? 'bg-sky-50/60' : 'hover:bg-slate-50'}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-bold text-slate-900 truncate">{msg.name}</p>
+                          <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${statusPill(msg.status)}`}>
+                            {msg.status === 'replied' ? 'Replied' : 'New'}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs text-slate-500 break-all">{msg.email}</p>
+                        <p className="mt-1 text-xs font-semibold text-slate-700">{msg.topic || 'General'}</p>
+                        <p className="mt-1 text-xs text-slate-500 line-clamp-2">{msg.message}</p>
+                        <p className="mt-1 text-[11px] text-slate-400">{new Date(msg.createdAt).toLocaleString()}</p>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => setSelectedId(msg.id)}
+                          className="p-2 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50"
+                          title="View"
+                        >
+                          <Eye size={14} />
+                        </button>
+                        <button
+                          onClick={() => onDelete(msg.id)}
+                          className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                          title="Delete"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-left min-w-[720px]">
                 <thead className="bg-slate-50 border-b border-slate-100">
                   <tr>
                     {['Name', 'Email', 'Subject', 'Message Preview', 'Date', 'Status', 'Actions'].map((h) => (
@@ -220,7 +257,8 @@ export default function AdminContactManagementPage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+                </table>
+              </div>
 
               {filtered.length === 0 && (
                 <div className="p-14 text-center text-slate-400">
@@ -230,7 +268,7 @@ export default function AdminContactManagementPage() {
               )}
             </div>
 
-            <div className="p-6 bg-slate-50/50">
+            <div className="p-4 sm:p-6 bg-slate-50/50 border-t xl:border-t-0 border-slate-100">
               <AnimatePresence mode="wait">
                 {selectedMessage ? (
                   <motion.div

@@ -39,10 +39,10 @@ export default function Signup() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="max-w-md w-full rounded-[40px] border border-gray-100 bg-white p-12 shadow-xl"
+          className="max-w-md w-full rounded-[28px] sm:rounded-[40px] border border-gray-100 bg-white p-6 sm:p-10 lg:p-12 shadow-xl"
         >
-          <div className="mb-10 text-center">
-            <h1 className="mb-3 text-4xl font-serif text-gray-900">Create Account</h1>
+          <div className="mb-8 sm:mb-10 text-center">
+            <h1 className="mb-3 text-3xl sm:text-4xl font-serif text-gray-900">Create Account</h1>
             <p className="text-gray-500">Start planning trips, saving places, and organizing your travel dashboard.</p>
           </div>
 
@@ -121,7 +121,7 @@ export default function Signup() {
             </button>
           </form>
 
-          <div className="mt-10 border-t border-gray-50 pt-8 text-center">
+          <div className="mt-8 sm:mt-10 border-t border-gray-50 pt-6 sm:pt-8 text-center">
             <p className="text-sm text-gray-500">
               Already have an account?{' '}
               <Link to="/login" className="font-semibold text-purple-600 hover:text-purple-700">

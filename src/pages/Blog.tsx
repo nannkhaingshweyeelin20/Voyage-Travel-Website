@@ -628,7 +628,7 @@ export default function BlogPage() {
     if (totalPages <= 1) return null;
 
     return (
-      <div className="mt-6 flex items-center justify-center gap-2">
+      <div className="mt-6 flex items-center justify-center gap-2 overflow-x-auto pb-1">
         <button
           onClick={() => onSelect(page - 1)}
           disabled={page === 1}
@@ -728,7 +728,7 @@ export default function BlogPage() {
             ) : (
               <div className="space-y-3">
                 {pendingPosts.map((post) => (
-                  <div key={post.id} className="border border-slate-200 rounded-2xl p-4 flex items-start justify-between gap-3">
+                  <div key={post.id} className="border border-slate-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start justify-between gap-3">
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="font-semibold text-slate-900">{post.title}</p>
@@ -736,7 +736,7 @@ export default function BlogPage() {
                       </div>
                       <p className="text-xs text-slate-500">by {post.authorName || post.userId}</p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex w-full sm:w-auto items-center gap-2 sm:justify-end">
                       <button
                         onClick={() => void handleApprovePost(post.id)}
                         className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg text-xs font-semibold"
@@ -775,7 +775,7 @@ export default function BlogPage() {
               <>
                 <div className="space-y-3">
                 {pagedUserPosts.map((post) => (
-                  <div key={post.id} className="border border-slate-200 rounded-2xl p-4 flex items-start justify-between gap-4">
+                  <div key={post.id} className="border border-slate-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start justify-between gap-4">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-1">
                         <p className="font-semibold text-slate-900 truncate">{post.title}</p>
@@ -783,7 +783,7 @@ export default function BlogPage() {
                       </div>
                       <p className="text-sm text-slate-500 line-clamp-2">{post.excerpt}</p>
                     </div>
-                    <div className="flex shrink-0 items-center gap-2">
+                    <div className="flex w-full sm:w-auto shrink-0 items-center gap-2 sm:justify-end">
                       <span className="text-xs text-slate-400">{formatBlogDate(post.createdAt)}</span>
                       <button
                         onClick={() => openEditBlogModal(post)}
@@ -818,7 +818,7 @@ export default function BlogPage() {
 
       {/* ── CATEGORY TABS ── */}
       <div className="sticky top-0 z-30 bg-white border-b border-slate-100 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 overflow-x-auto scrollbar-hide">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 overflow-x-auto scrollbar-hide">
           <div className="flex gap-1 py-2 min-w-max">
             {CATEGORIES.map(({ label, icon: Icon }) => (
               <button
@@ -863,7 +863,7 @@ export default function BlogPage() {
                       referrerPolicy="no-referrer" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
                   </div>
-                  <div className="absolute bottom-0 left-0 right-0 p-8">
+                  <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-8">
                     <div className="flex flex-wrap gap-2 mb-3">
                       {featured.tags.map(t => (
                         <span key={t} className="bg-white/20 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full">
@@ -873,7 +873,7 @@ export default function BlogPage() {
                     </div>
                     <h2 className="text-2xl md:text-3xl font-black text-white leading-tight mb-3">{featured.title}</h2>
                     <p className="text-white/70 text-sm line-clamp-2 mb-4">{featured.excerpt}</p>
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex items-center gap-2">
                         <img src={featured.authorAvatar} alt={featured.author} className="w-8 h-8 rounded-full border-2 border-white/30" referrerPolicy="no-referrer" />
                         <div>

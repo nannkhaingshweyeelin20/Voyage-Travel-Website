@@ -1500,7 +1500,7 @@ export default function Destinations() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* ── Hero / Search ── */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 pt-32 pb-24 px-6">
+      <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 pt-32 pb-24 px-4 sm:px-6">
         <div className="absolute inset-0">
           <img
             src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1920&q=80"
@@ -1523,7 +1523,7 @@ export default function Destinations() {
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.08 }}
-            className="text-5xl md:text-6xl font-black text-white leading-tight"
+            className="text-4xl sm:text-5xl md:text-6xl font-black text-white leading-tight"
           >
             Explore Any Destination
           </motion.h1>
@@ -1531,7 +1531,7 @@ export default function Destinations() {
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.14 }}
-            className="text-slate-300 text-lg"
+            className="text-slate-300 text-base md:text-lg"
           >
             Search hotels, restaurants, and top attractions in one place.
           </motion.p>
@@ -1542,7 +1542,7 @@ export default function Destinations() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
             onSubmit={handleSearch}
-            className="flex gap-3 mt-2"
+            className="mt-2 flex flex-col gap-3 sm:flex-row"
           >
             <div className="relative flex-1">
               <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -1578,7 +1578,7 @@ export default function Destinations() {
             <button
               type="submit"
               disabled={loadingTab || !inputValue.trim()}
-              className="flex items-center gap-2 bg-purple-500 hover:bg-purple-600 disabled:opacity-50 text-white px-7 py-4 rounded-2xl font-bold text-sm transition shrink-0"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-purple-500 px-7 py-4 text-sm font-bold text-white transition hover:bg-purple-600 disabled:opacity-50 sm:w-auto sm:shrink-0"
             >
               {loadingTab ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
               Search
@@ -1620,7 +1620,8 @@ export default function Destinations() {
 
       {/* ── Sticky Tabs ── */}
       <div className="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 flex gap-1 py-2">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 overflow-x-auto scrollbar-hide">
+          <div className="inline-flex min-w-max gap-1 py-2 pr-2">
           {TABS.map(({ key, label, icon: Icon }) => (
             <button
               key={key}
@@ -1636,7 +1637,7 @@ export default function Destinations() {
             </button>
           ))}
           {destination && (
-            <div className="ml-auto flex items-center gap-2 py-2 pr-1">
+            <div className="ml-auto hidden items-center gap-2 py-2 pr-1 sm:flex">
               <MapPin size={14} className="text-purple-500" />
               <span className="text-sm font-semibold text-slate-700">{destination}</span>
               <button
@@ -1654,11 +1655,12 @@ export default function Destinations() {
               </button>
             </div>
           )}
+          </div>
         </div>
       </div>
 
       {/* ── Main Content ── */}
-      <main className="max-w-7xl mx-auto px-6 py-10">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
 
         {/* ══════════ BROWSE MODE (no search active) ══════════ */}
         {!hasSearched && (() => {
@@ -1745,7 +1747,7 @@ export default function Destinations() {
 
                 {/* Search + Filter */}
                 <div className="flex flex-wrap gap-3 mb-6">
-                  <div className="relative flex-1 min-w-[200px]">
+                  <div className="relative min-w-0 w-full sm:flex-1">
                     <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
                       type="text"

@@ -111,13 +111,61 @@ function itineraryFileName(trip: Itinerary) {
   return `${base}.pdf`;
 }
 
-function downloadTripPdf(trip: Itinerary) {
+async function blobToDataUrl(blob: Blob) {
+  return await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result);
+        return;
+      }
+      reject(new Error('Could not read image data.'));
+    };
+    reader.onerror = () => reject(new Error('Could not read image data.'));
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function loadPdfImage(url?: string | null) {
+  if (!url) {
+    return null;
+  }
+
+  try {
+    const response = await fetch(url, { mode: 'cors' });
+    if (!response.ok) {
+      return null;
+    }
+
+    const blob = await response.blob();
+    const dataUrl = await blobToDataUrl(blob);
+    const format = blob.type.includes('png') ? 'PNG' : 'JPEG';
+    return { dataUrl, format };
+  } catch {
+    return null;
+  }
+}
+
+async function downloadTripPdf(trip: Itinerary) {
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  const marginX = 44;
+  const marginX = 36;
   const maxWidth = pageWidth - marginX * 2;
-  let cursorY = 52;
+  const coverImage = await loadPdfImage(destImg(trip.destination));
+  let cursorY = 40;
+  let currentPage = 1;
+
+  const drawPageBase = () => {
+    doc.setFillColor(248, 250, 252);
+    doc.rect(0, 0, pageWidth, pageHeight, 'F');
+    doc.setTextColor(148, 163, 184);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text(`Page ${currentPage}`, pageWidth - marginX, pageHeight - 18, { align: 'right' });
+  };
+
+  drawPageBase();
 
   const ensureSpace = (heightNeeded = 24) => {
     if (cursorY + heightNeeded <= pageHeight - 44) {
@@ -125,7 +173,9 @@ function downloadTripPdf(trip: Itinerary) {
     }
 
     doc.addPage();
-    cursorY = 52;
+    currentPage += 1;
+    drawPageBase();
+    cursorY = 40;
   };
 
   const writeLines = (text: string, fontSize = 11, color: [number, number, number] = [51, 65, 85], gap = 16) => {
@@ -138,36 +188,103 @@ function downloadTripPdf(trip: Itinerary) {
     cursorY += lines.length * gap;
   };
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(24);
-  doc.setTextColor(15, 23, 42);
-  doc.text(trip.title || 'Untitled trip', marginX, cursorY);
-  cursorY += 28;
+  const drawStatCard = (x: number, y: number, width: number, label: string, value: string, accent: [number, number, number]) => {
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(x, y, width, 54, 12, 12, 'F');
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(x, y, width, 54, 12, 12, 'S');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(100, 116, 139);
+    doc.text(label.toUpperCase(), x + 14, y + 18);
+    doc.setFontSize(14);
+    doc.setTextColor(...accent);
+    doc.text(value, x + 14, y + 39);
+  };
 
-  doc.setFontSize(12);
-  doc.setTextColor(100, 116, 139);
-  doc.text(`${trip.destination || 'No destination'} • ${trip.startDate || 'TBD'} to ${trip.endDate || 'TBD'}`, marginX, cursorY);
-  cursorY += 18;
+  const drawSectionHeading = (title: string) => {
+    ensureSpace(28);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(15);
+    doc.setTextColor(88, 28, 135);
+    doc.text(title, marginX, cursorY);
+    cursorY += 18;
+  };
 
-  doc.setTextColor(5, 150, 105);
-  doc.text(`Total trip price: ${formatMoney(tripTotalPrice(trip), tripCurrency(trip))}`, marginX, cursorY);
-  cursorY += 28;
+  const drawActivityImage = async (url?: string) => {
+    const image = await loadPdfImage(url);
+    if (!image) {
+      return false;
+    }
 
+    doc.addImage(image.dataUrl, image.format, marginX + 16, cursorY + 12, 56, 56);
+    return true;
+  };
+
+  if (coverImage) {
+    doc.addImage(coverImage.dataUrl, coverImage.format, marginX, cursorY, maxWidth, 176);
+  } else {
+    doc.setFillColor(91, 33, 182);
+    doc.roundedRect(marginX, cursorY, maxWidth, 176, 24, 24, 'F');
+    doc.setFillColor(30, 41, 59);
+    doc.circle(pageWidth - 92, cursorY + 36, 42, 'F');
+    doc.setFillColor(124, 58, 237);
+    doc.circle(pageWidth - 124, cursorY + 124, 60, 'F');
+  }
+
+  doc.setFillColor(255, 255, 255);
+  doc.roundedRect(marginX + 18, cursorY + 110, maxWidth - 36, 92, 20, 20, 'F');
   doc.setDrawColor(226, 232, 240);
-  doc.line(marginX, cursorY, pageWidth - marginX, cursorY);
-  cursorY += 22;
+  doc.roundedRect(marginX + 18, cursorY + 110, maxWidth - 36, 92, 20, 20, 'S');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(26);
+  doc.setTextColor(15, 23, 42);
+  doc.text(trip.title || 'Untitled trip', marginX + 34, cursorY + 145);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+  doc.setTextColor(71, 85, 105);
+  doc.text(trip.destination || 'No destination', marginX + 34, cursorY + 166);
+
+  doc.setFillColor(237, 233, 254);
+  doc.roundedRect(pageWidth - 160, cursorY + 130, 90, 24, 10, 10, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(109, 40, 217);
+  doc.text((STATUS_META[trip.status]?.label || 'Draft').toUpperCase(), pageWidth - 115, cursorY + 146, { align: 'center' });
+
+  cursorY += 224;
+
+  const statWidth = (maxWidth - 24) / 3;
+  drawStatCard(marginX, cursorY, statWidth, 'Dates', `${trip.startDate || 'TBD'} - ${trip.endDate || 'TBD'}`, [37, 99, 235]);
+  drawStatCard(marginX + statWidth + 12, cursorY, statWidth, 'Activities', String((trip.days || []).reduce((sum, day) => sum + (day.activities?.length || 0), 0)), [109, 40, 217]);
+  drawStatCard(marginX + (statWidth + 12) * 2, cursorY, statWidth, 'Budget', formatMoney(tripTotalPrice(trip), tripCurrency(trip)), [5, 150, 105]);
+  cursorY += 80;
+
+  drawSectionHeading('Trip overview');
+  writeLines(
+    `This itinerary covers ${trip.destination || 'your destination'} from ${trip.startDate || 'TBD'} to ${trip.endDate || 'TBD'} with ${(trip.days || []).reduce((sum, day) => sum + (day.activities?.length || 0), 0)} planned activities.`,
+    11,
+    [71, 85, 105],
+    15,
+  );
+  cursorY += 6;
 
   if (!trip.days || trip.days.length === 0) {
-    writeLines('No activities planned yet.');
+    writeLines('No activities planned yet.', 11, [148, 163, 184]);
   }
 
   for (const day of trip.days || []) {
-    ensureSpace(30);
+    drawSectionHeading(`Day ${day.dayNumber}`);
+
+    doc.setFillColor(243, 244, 246);
+    doc.roundedRect(marginX, cursorY, maxWidth, 26, 10, 10, 'F');
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.setTextColor(109, 40, 217);
-    doc.text(`Day ${day.dayNumber}`, marginX, cursorY);
-    cursorY += 20;
+    doc.setFontSize(10);
+    doc.setTextColor(71, 85, 105);
+    doc.text(`${day.activities?.length || 0} planned item${(day.activities?.length || 0) === 1 ? '' : 's'}`, marginX + 12, cursorY + 17);
+    cursorY += 38;
 
     if (!day.activities || day.activities.length === 0) {
       writeLines('No activities for this day.', 11, [148, 163, 184]);
@@ -177,36 +294,60 @@ function downloadTripPdf(trip: Itinerary) {
 
     for (const activity of day.activities) {
       const activityTitle = activity.placeName || activity.placeId || 'Activity';
-      ensureSpace(40);
+      const bookings = activity.bookings || [];
+      const detailsHeight = 88 + Math.max(0, bookings.length - 1) * 22;
+      ensureSpace(detailsHeight);
+
+      doc.setFillColor(255, 255, 255);
+      doc.roundedRect(marginX, cursorY, maxWidth, detailsHeight, 18, 18, 'F');
+      doc.setDrawColor(226, 232, 240);
+      doc.roundedRect(marginX, cursorY, maxWidth, detailsHeight, 18, 18, 'S');
+
+      const hasImage = await drawActivityImage(activity.imageUrl || destImg(trip.destination));
+      const textStartX = hasImage ? marginX + 86 : marginX + 18;
+
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(12);
       doc.setTextColor(15, 23, 42);
-      doc.text(`${activity.time || '09:00'} • ${activityTitle}`, marginX, cursorY);
-      cursorY += 16;
+      doc.text(`${activity.time || '09:00'} • ${activityTitle}`, textStartX, cursorY + 26);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(100, 116, 139);
+      const locationLine = activity.location || trip.destination || 'Planned stop';
+      doc.text(locationLine, textStartX, cursorY + 42);
 
       if (activity.notes) {
-        writeLines(activity.notes, 10, [71, 85, 105], 14);
+        const noteLines = doc.splitTextToSize(activity.notes, maxWidth - (textStartX - marginX) - 18);
+        doc.setTextColor(71, 85, 105);
+        doc.text(noteLines, textStartX, cursorY + 58);
       }
 
       const activityAmount = activityBookedPrice(activity);
       if (activityAmount > 0) {
-        writeLines(`Cost: ${formatMoney(activityAmount, activity.currency || tripCurrency(trip))}`, 10, [5, 150, 105], 14);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(5, 150, 105);
+        doc.text(formatMoney(activityAmount, activity.currency || tripCurrency(trip)), marginX + maxWidth - 18, cursorY + 26, { align: 'right' });
       }
 
-      const bookings = activity.bookings || [];
+      let bookingCursorY = cursorY + 74;
       for (const booking of bookings) {
         const bookingName = booking.bookingType === 'flight'
           ? (booking.flightName || booking.hotelName)
           : booking.hotelName;
-        writeLines(
-          `Booking: ${bookingName} | ${booking.checkIn} to ${booking.checkOut} | ${booking.status.toUpperCase()} | ${formatMoney(booking.totalPrice, booking.currency)}`,
-          10,
-          booking.status === 'cancelled' ? [225, 29, 72] : [3, 105, 161],
-          14,
-        );
+        const bookingAccent: [number, number, number] = booking.status === 'cancelled'
+          ? [225, 29, 72]
+          : [3, 105, 161];
+        doc.setFillColor(booking.status === 'cancelled' ? 255 : 239, booking.status === 'cancelled' ? 228 : 246, booking.status === 'cancelled' ? 230 : 255);
+        doc.roundedRect(textStartX, bookingCursorY - 12, maxWidth - (textStartX - marginX) - 18, 18, 8, 8, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.setTextColor(...bookingAccent);
+        doc.text(`${bookingName} • ${booking.status.toUpperCase()} • ${formatMoney(booking.totalPrice, booking.currency)}`, textStartX + 8, bookingCursorY);
+        bookingCursorY += 22;
       }
 
-      cursorY += 8;
+      cursorY += detailsHeight + 12;
     }
   }
 
@@ -561,7 +702,7 @@ export default function ItineraryPage() {
         </div>
       </section>
 
-      <div className="max-w-7xl mx-auto px-6 pb-20 md:pb-24">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-20 md:pb-24">
         {/* ── Stats ── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
           {stats.map(s => (
@@ -577,29 +718,31 @@ export default function ItineraryPage() {
           <section className="mb-14">
             <h2 className="text-xl font-bold text-slate-900 mb-6">All User Trips (Admin)</h2>
             <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <table className="w-full text-left text-sm">
+              <div className="overflow-x-auto">
+                <table className="min-w-[760px] w-full text-left text-sm">
                 <thead className="bg-slate-50 border-b border-slate-100">
                   <tr>
                     {['User', 'Destination', 'Dates', 'Status', 'Total', ''].map(h => (
-                      <th key={h} className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">{h}</th>
+                      <th key={h} className="px-3 sm:px-5 py-3 sm:py-4 text-xs font-bold uppercase tracking-wider text-slate-400">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {pagedAdminTrips.map(trip => (
                     <tr key={trip.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-5 py-4 font-medium text-slate-800 truncate max-w-[120px]">{trip.userId}</td>
-                      <td className="px-5 py-4 text-slate-700">{trip.destination}</td>
-                      <td className="px-5 py-4 text-slate-500">{trip.startDate} – {trip.endDate}</td>
-                      <td className="px-5 py-4"><StatusBadge status={trip.status} /></td>
-                      <td className="px-5 py-4 text-slate-700 font-semibold">{formatMoney(tripTotalPrice(trip), tripCurrency(trip))}</td>
-                      <td className="px-5 py-4 text-right">
+                      <td className="px-3 sm:px-5 py-3 sm:py-4 font-medium text-slate-800 truncate max-w-[120px]">{trip.userId}</td>
+                      <td className="px-3 sm:px-5 py-3 sm:py-4 text-slate-700">{trip.destination}</td>
+                      <td className="px-3 sm:px-5 py-3 sm:py-4 text-slate-500">{trip.startDate} – {trip.endDate}</td>
+                      <td className="px-3 sm:px-5 py-3 sm:py-4"><StatusBadge status={trip.status} /></td>
+                      <td className="px-3 sm:px-5 py-3 sm:py-4 text-slate-700 font-semibold">{formatMoney(tripTotalPrice(trip), tripCurrency(trip))}</td>
+                      <td className="px-3 sm:px-5 py-3 sm:py-4 text-right">
                         <button onClick={() => handleDelete(trip.id)} className="text-xs text-rose-500 hover:text-rose-700 font-semibold">Delete</button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
-              </table>
+                </table>
+              </div>
               {/* Pagination controls for admin */}
               <ResultPageNav page={adminPage} total={adminTotalPages} onPrev={() => setAdminPage(adminPage - 1)} onNext={() => setAdminPage(adminPage + 1)} onSelect={setAdminPage} />
             </div>

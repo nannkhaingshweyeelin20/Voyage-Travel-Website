@@ -5,7 +5,7 @@ import { Plane, Instagram, Twitter, Facebook, Youtube, MapPin, Mail, Phone, Hear
 export default function Footer() {
   return (
     <footer className="bg-slate-900 text-slate-400">
-      <div className="max-w-7xl mx-auto px-6 py-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-14 sm:py-16">
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
           {/* Brand */}
           <div>
@@ -84,7 +84,7 @@ export default function Footer() {
             {/* Newsletter */}
             <div className="mt-6">
               <p className="text-white text-xs font-bold uppercase tracking-wider mb-3">Weekly travel picks</p>
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <input
                   type="email"
                   placeholder="your@email.com"

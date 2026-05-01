@@ -31,10 +31,10 @@ export default function Login() {
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="max-w-md w-full bg-white rounded-[40px] shadow-xl p-12 border border-gray-100"
+          className="max-w-md w-full bg-white rounded-[28px] sm:rounded-[40px] shadow-xl p-6 sm:p-10 lg:p-12 border border-gray-100"
         >
-          <div className="text-center mb-10">
-            <h1 className="text-4xl font-serif text-gray-900 mb-3">Welcome Back</h1>
+          <div className="text-center mb-8 sm:mb-10">
+            <h1 className="text-3xl sm:text-4xl font-serif text-gray-900 mb-3">Welcome Back</h1>
             <p className="text-gray-500">Sign in to continue planning your dream trip.</p>
           </div>
 
@@ -88,7 +88,7 @@ export default function Login() {
             </button>
           </form>
 
-          <div className="mt-12 border-t border-gray-50 pt-8 text-center">
+          <div className="mt-10 sm:mt-12 border-t border-gray-50 pt-6 sm:pt-8 text-center">
             <p className="text-sm text-gray-500">Sign in with your account to access your trips, saved places, and dashboard settings.</p>
             <p className="mt-3 text-sm text-gray-500">
               Don&apos;t have an account?{' '}

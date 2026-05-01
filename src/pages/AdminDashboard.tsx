@@ -288,17 +288,17 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* ── TOP HEADER BANNER ── */}
-      <div className="bg-gradient-to-r from-slate-900 via-purple-950 to-slate-900 px-6 pt-24 pb-10">
+      <div className="bg-gradient-to-r from-slate-900 via-purple-950 to-slate-900 px-4 sm:px-6 pt-24 pb-10">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-5">
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-purple-400 mb-2">Admin · Operations centre</p>
-            <h1 className="text-4xl md:text-5xl font-black text-white">Voyage Dashboard</h1>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white">Voyage Dashboard</h1>
             <p className="text-slate-400 mt-2 text-sm">All users, trips, and bookings in one control room.</p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="bg-white/10 border border-white/15 rounded-2xl px-5 py-3 text-sm">
+          <div className="flex w-full sm:w-auto items-center gap-3">
+            <div className="min-w-0 flex-1 bg-white/10 border border-white/15 rounded-2xl px-4 sm:px-5 py-3 text-sm">
               <p className="text-white/60 text-xs">Signed in as</p>
-              <p className="text-white font-bold">{currentAdmin?.displayName || 'Admin'}</p>
+              <p className="truncate text-white font-bold">{currentAdmin?.displayName || 'Admin'}</p>
             </div>
             <button onClick={loadData} className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-2xl transition">
               <RefreshCw size={16} />
@@ -307,7 +307,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-10 space-y-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10 space-y-8">
         {dataWarning && (
           <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 text-amber-700 text-sm font-semibold rounded-2xl px-5 py-4">
             <AlertCircle size={16} /> {dataWarning}
@@ -315,12 +315,12 @@ export default function AdminDashboard() {
         )}
 
         {/* ── KPI GRID ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-5">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-5">
           {kpis.map((k, i) => {
             const Icon = k.icon;
             return (
               <motion.div key={k.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}
-                className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm cursor-pointer hover:shadow-md transition"
+                className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-6 shadow-sm cursor-pointer hover:shadow-md transition"
                 onClick={() => {
                   if (k.label === 'Open messages') setTab('messages');
                   else if (k.label === 'Active trips') setTab('trips');
@@ -328,10 +328,10 @@ export default function AdminDashboard() {
                   else if (k.label === 'Bookings') setTab('bookings');
                 }}>
                 <div className="flex items-start justify-between mb-4">
-                  <div className={`p-3 rounded-2xl ${k.color}`}><Icon size={20} /></div>
+                  <div className={`p-2.5 sm:p-3 rounded-2xl ${k.color}`}><Icon size={18} /></div>
                   {k.trend && <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">{k.trend}</span>}
                 </div>
-                <p className="text-3xl font-black text-slate-900">{k.value}</p>
+                <p className="text-2xl sm:text-3xl font-black text-slate-900">{k.value}</p>
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mt-1">{k.label}</p>
               </motion.div>
             );
@@ -339,11 +339,12 @@ export default function AdminDashboard() {
         </div>
 
         {/* ── TABS ── */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex gap-1 bg-white border border-slate-200 rounded-2xl p-1 flex-wrap">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="w-full sm:w-auto">
+            <div className="grid grid-cols-2 gap-1 bg-white border border-slate-200 rounded-2xl p-1 w-full sm:inline-flex sm:min-w-max">
             {(['overview', 'users', 'bookings', 'trips', 'destinations', 'messages'] as DashTab[]).map(t => (
               <button key={t} onClick={() => setTab(t)}
-                className={`px-5 py-2.5 rounded-xl text-sm font-bold capitalize transition relative ${
+                className={`w-full px-3 sm:px-5 py-2.5 rounded-xl text-sm font-bold capitalize transition relative text-center ${
                   tab === t ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
                 }`}>
                 {t}
@@ -354,13 +355,14 @@ export default function AdminDashboard() {
                 )}
               </button>
             ))}
+            </div>
           </div>
           {tab !== 'overview' && (
-            <div className="relative">
+            <div className="relative w-full sm:w-auto">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input type="text" value={search} onChange={e => setSearch(e.target.value)}
                 placeholder="Search…"
-                className="pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 w-56" />
+                className="w-full sm:w-56 pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20" />
             </div>
           )}
         </div>
@@ -369,7 +371,7 @@ export default function AdminDashboard() {
         {tab === 'overview' && (
           <div className="grid xl:grid-cols-[1fr_340px] gap-6">
             {/* Trending destinations */}
-            <div className="bg-white border border-slate-200 rounded-3xl p-7 shadow-sm">
+            <div className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-7 shadow-sm max-w-xs mx-auto w-full sm:max-w-full sm:mx-0">
               <div className="flex items-center gap-2 mb-6">
                 <TrendingUp size={16} className="text-purple-600" />
                 <div>
@@ -417,7 +419,7 @@ export default function AdminDashboard() {
             {/* Sidebar */}
             <div className="space-y-5">
               {/* Recent users */}
-              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+              <div className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-6 shadow-sm max-w-xs mx-auto w-full sm:max-w-full sm:mx-0">
                 <div className="flex items-center justify-between mb-5">
                   <h3 className="font-black text-slate-900">Recent users</h3>
                   <button onClick={() => setTab('users')} className="text-xs text-purple-600 font-semibold">See all →</button>
@@ -439,7 +441,7 @@ export default function AdminDashboard() {
               </div>
 
               {/* Booking status overview */}
-              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+              <div className="bg-white border border-slate-200 rounded-3xl p-4 sm:p-6 shadow-sm max-w-xs mx-auto w-full sm:max-w-full sm:mx-0">
                 <h3 className="font-black text-slate-900 mb-5">Booking overview</h3>
                 {[
                   { label: 'Confirmed', count: bookings.filter(b => b.status === 'confirmed').length, color: 'bg-emerald-500' },
@@ -459,7 +461,7 @@ export default function AdminDashboard() {
               </div>
 
               {/* Admin info */}
-              <div className="bg-gradient-to-br from-slate-900 to-slate-950 text-white rounded-3xl p-6">
+              <div className="bg-gradient-to-br from-slate-900 to-slate-950 text-white rounded-3xl p-4 sm:p-6 max-w-xs mx-auto w-full sm:max-w-full sm:mx-0">
                 <div className="flex items-center gap-2 mb-3">
                   <ShieldCheck size={16} className="text-purple-400" />
                   <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Admin session</p>
@@ -475,18 +477,47 @@ export default function AdminDashboard() {
         {/* ══ USERS ════════════════════════════════════════════════ */}
         {tab === 'users' && (
           <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between px-8 py-6 border-b border-slate-100">
+            <div className="flex items-center justify-between px-4 sm:px-6 md:px-8 py-5 sm:py-6 border-b border-slate-100">
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Registered accounts</p>
                 <h2 className="text-xl font-black text-slate-900">All users <span className="text-slate-400 font-semibold text-base">({filteredUsers.length})</span></h2>
               </div>
             </div>
-            <div className="overflow-x-auto">
+            <div className="md:hidden divide-y divide-slate-100">
+              {filteredUsers.map(user => {
+                const isCurrent = currentAdmin?.email?.toLowerCase() === user.email.toLowerCase();
+                return (
+                  <div key={user.uid} className="px-4 py-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-700 font-black flex items-center justify-center text-sm shrink-0">
+                        {(user.displayName || 'U')[0].toUpperCase()}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-bold text-slate-900 text-sm truncate">{user.displayName}</p>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${user.role === 'admin' ? 'bg-purple-50 text-purple-600' : 'bg-slate-100 text-slate-600'}`}>
+                            {user.role}
+                          </span>
+                          {isCurrent ? <span className="text-[10px] font-bold text-purple-600 uppercase tracking-wider">You</span> : null}
+                        </div>
+                        <p className="mt-1 text-xs text-slate-500 break-all">{user.email}</p>
+                        <p className="mt-1 text-xs text-slate-400">Joined: {user.createdAt ? format(new Date(user.createdAt), 'MMM d, yyyy') : '—'}</p>
+                        <button onClick={() => handleDeleteUser(user.uid)} disabled={isCurrent}
+                          className="mt-3 px-3 py-1.5 bg-rose-50 text-rose-600 text-xs font-bold rounded-lg hover:bg-rose-100 disabled:opacity-40 disabled:cursor-not-allowed transition">
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full min-w-[800px] text-left">
                 <thead className="bg-slate-50 border-b border-slate-100">
                   <tr>
                     {['User','Email','Role','Joined','Actions'].map(h => (
-                      <th key={h} className="px-7 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">{h}</th>
+                      <th key={h} className="px-4 sm:px-7 py-3 sm:py-4 text-xs font-bold uppercase tracking-wider text-slate-400">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -495,7 +526,7 @@ export default function AdminDashboard() {
                     const isCurrent = currentAdmin?.email?.toLowerCase() === user.email.toLowerCase();
                     return (
                       <tr key={user.uid} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-7 py-4">
+                        <td className="px-4 sm:px-7 py-3 sm:py-4">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-700 font-black flex items-center justify-center text-sm shrink-0">
                               {(user.displayName || 'U')[0].toUpperCase()}
@@ -506,16 +537,16 @@ export default function AdminDashboard() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-7 py-4 text-sm text-slate-600">{user.email}</td>
-                        <td className="px-7 py-4">
+                        <td className="px-4 sm:px-7 py-3 sm:py-4 text-sm text-slate-600">{user.email}</td>
+                        <td className="px-4 sm:px-7 py-3 sm:py-4">
                           <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${user.role === 'admin' ? 'bg-purple-50 text-purple-600' : 'bg-slate-100 text-slate-600'}`}>
                             {user.role}
                           </span>
                         </td>
-                        <td className="px-7 py-4 text-sm text-slate-500">
+                        <td className="px-4 sm:px-7 py-3 sm:py-4 text-sm text-slate-500">
                           {user.createdAt ? format(new Date(user.createdAt), 'MMM d, yyyy') : '—'}
                         </td>
-                        <td className="px-7 py-4">
+                        <td className="px-4 sm:px-7 py-3 sm:py-4">
                           <button onClick={() => handleDeleteUser(user.uid)} disabled={isCurrent}
                             className="px-4 py-2 bg-rose-50 text-rose-600 text-xs font-bold rounded-xl hover:bg-rose-100 disabled:opacity-40 disabled:cursor-not-allowed transition">
                             Delete
@@ -533,47 +564,78 @@ export default function AdminDashboard() {
         {/* ══ BOOKINGS ══════════════════════════════════════════════ */}
         {tab === 'bookings' && (
           <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between px-8 py-6 border-b border-slate-100">
+            <div className="flex items-center justify-between px-4 sm:px-6 md:px-8 py-5 sm:py-6 border-b border-slate-100">
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Booking pipeline</p>
                 <h2 className="text-xl font-black text-slate-900">All bookings <span className="text-slate-400 font-semibold text-base">({filteredBookings.length})</span></h2>
               </div>
             </div>
-            <div className="overflow-x-auto">
+            <div className="md:hidden divide-y divide-slate-100">
+              {filteredBookings.map(booking => (
+                <div key={booking.id} className="px-4 py-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-mono text-xs text-slate-500">#{booking.id}</p>
+                      <p className="mt-1 text-sm font-bold text-slate-900">{booking.bookingType === 'flight' ? (booking.flightName || booking.hotelName) : booking.hotelName}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{booking.bookingType === 'flight' ? (booking.flightDetails ? `${booking.flightDetails.fromCode} -> ${booking.flightDetails.toCode}` : booking.location || booking.itineraryId || '—') : booking.location || booking.itineraryId || '—'}</p>
+                      <p className="text-xs text-slate-500 mt-1">{booking.checkIn || '—'} to {booking.checkOut || '—'}</p>
+                      <p className="text-xs text-slate-500">{booking.guests} guest{booking.guests === 1 ? '' : 's'} · {new Date(booking.createdAt).toLocaleDateString()}</p>
+                    </div>
+                    <span className={`shrink-0 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                      booking.status === 'confirmed' ? 'bg-emerald-50 text-emerald-600' :
+                      booking.status === 'pending' ? 'bg-amber-50 text-amber-600' :
+                      'bg-rose-50 text-rose-600'
+                    }`}>{booking.status}</span>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between gap-2">
+                    <p className="font-black text-slate-900 text-sm">{booking.currency} {booking.totalPrice.toLocaleString()}</p>
+                    <div className="flex gap-1.5">
+                      <button onClick={() => handleUpdateBooking(booking.id, 'confirmed')} title="Confirm"
+                        className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition"><CheckCircle size={14} /></button>
+                      <button onClick={() => handleUpdateBooking(booking.id, 'cancelled')} title="Cancel"
+                        className="p-2 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100 transition"><XCircle size={14} /></button>
+                      <button onClick={() => handleUpdateBooking(booking.id, 'pending')} title="Mark pending"
+                        className="p-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition"><Clock size={14} /></button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full min-w-[700px] text-left">
                 <thead className="bg-slate-50 border-b border-slate-100">
                   <tr>
                     {['Booking ID','Guest','Booking','Dates','Status','Total','Actions'].map(h => (
-                      <th key={h} className="px-7 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">{h}</th>
+                      <th key={h} className="px-4 sm:px-7 py-3 sm:py-4 text-xs font-bold uppercase tracking-wider text-slate-400">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filteredBookings.map(booking => (
                     <tr key={booking.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-7 py-4 font-mono text-sm text-slate-700">{booking.id}</td>
-                      <td className="px-7 py-4 text-sm text-slate-600">
+                      <td className="px-4 sm:px-7 py-3 sm:py-4 font-mono text-sm text-slate-700">{booking.id}</td>
+                      <td className="px-4 sm:px-7 py-3 sm:py-4 text-sm text-slate-600">
                         {users.find((user) => user.uid === booking.userId)?.displayName || booking.userId || '—'}
                       </td>
-                      <td className="px-7 py-4">
+                      <td className="px-4 sm:px-7 py-3 sm:py-4">
                         <div>
                           <p className="text-sm font-bold text-slate-900">{booking.bookingType === 'flight' ? (booking.flightName || booking.hotelName) : booking.hotelName}</p>
                           <p className="text-xs text-slate-500">{booking.bookingType === 'flight' ? (booking.flightDetails ? `${booking.flightDetails.fromCode} -> ${booking.flightDetails.toCode}` : booking.location || booking.itineraryId || '—') : booking.location || booking.itineraryId || '—'}</p>
                         </div>
                       </td>
-                      <td className="px-7 py-4 text-xs text-slate-500">
+                      <td className="px-4 sm:px-7 py-3 sm:py-4 text-xs text-slate-500">
                         <div>{booking.checkIn || '—'} to {booking.checkOut || '—'}</div>
                         <div>{booking.guests} guest{booking.guests === 1 ? '' : 's'} · {new Date(booking.createdAt).toLocaleDateString()}</div>
                       </td>
-                      <td className="px-7 py-4">
+                      <td className="px-4 sm:px-7 py-3 sm:py-4">
                         <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                           booking.status === 'confirmed' ? 'bg-emerald-50 text-emerald-600' :
                           booking.status === 'pending'   ? 'bg-amber-50 text-amber-600' :
                           'bg-rose-50 text-rose-600'
                         }`}>{booking.status}</span>
                       </td>
-                      <td className="px-7 py-4 font-black text-slate-900">{booking.currency} {booking.totalPrice.toLocaleString()}</td>
-                      <td className="px-7 py-4">
+                      <td className="px-4 sm:px-7 py-3 sm:py-4 font-black text-slate-900">{booking.currency} {booking.totalPrice.toLocaleString()}</td>
+                      <td className="px-4 sm:px-7 py-3 sm:py-4">
                         <div className="flex gap-2">
                           <button onClick={() => handleUpdateBooking(booking.id, 'confirmed')} title="Confirm"
                             className="p-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-100 transition"><CheckCircle size={15} /></button>
@@ -594,7 +656,7 @@ export default function AdminDashboard() {
         {/* ══ TRIPS ════════════════════════════════════════════════ */}
         {tab === 'trips' && (
           <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
-            <div className="px-8 py-6 border-b border-slate-100 space-y-4">
+            <div className="px-4 sm:px-6 md:px-8 py-5 sm:py-6 border-b border-slate-100 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">All itineraries</p>
@@ -606,15 +668,15 @@ export default function AdminDashboard() {
                 </button>
               </div>
               <div className="flex flex-wrap gap-3">
-                <div className="relative">
+                <div className="relative w-full sm:w-auto">
                   <Filter size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input value={tripUserFilter} onChange={e => { setTripUserFilter(e.target.value); setTripsPage(1); }}
-                    placeholder="Filter by user ID…" className="pl-8 pr-4 py-2 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-purple-500/20 w-48" />
+                    placeholder="Filter by user ID…" className="w-full sm:w-48 pl-8 pr-4 py-2 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-purple-500/20" />
                 </div>
-                <div className="relative">
+                <div className="relative w-full sm:w-auto">
                   <MapPin size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input value={tripDestFilter} onChange={e => { setTripDestFilter(e.target.value); setTripsPage(1); }}
-                    placeholder="Filter by destination…" className="pl-8 pr-4 py-2 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-purple-500/20 w-52" />
+                    placeholder="Filter by destination…" className="w-full sm:w-52 pl-8 pr-4 py-2 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-purple-500/20" />
                 </div>
                 {(tripUserFilter || tripDestFilter) && (
                   <button onClick={() => { setTripUserFilter(''); setTripDestFilter(''); setTripsPage(1); }}
@@ -624,12 +686,72 @@ export default function AdminDashboard() {
                 )}
               </div>
             </div>
-            <div className="overflow-x-auto">
+            <div className="md:hidden divide-y divide-slate-100">
+              {pagedTrips.map(trip => (
+                <div key={trip.id} className="px-4 py-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold text-slate-900 text-sm truncate">{trip.title || 'Untitled'}</p>
+                      <p className="mt-0.5 text-xs text-slate-500 flex items-center gap-1"><MapPin size={11} className="text-purple-500" />{trip.destination || '—'}</p>
+                      <p className="mt-1 text-xs text-slate-500">{trip.startDate || '—'} – {trip.endDate || '—'}</p>
+                      <p className="mt-1 text-xs text-slate-500">Activities: {(trip.days || []).reduce((a, d) => a + (d.activities?.length || 0), 0)}</p>
+                    </div>
+                    <span className={`shrink-0 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                      trip.status === 'completed' ? 'bg-emerald-50 text-emerald-600' :
+                      trip.status === 'confirmed' ? 'bg-purple-50 text-purple-600' :
+                      trip.status === 'upcoming' ? 'bg-blue-50 text-blue-600' :
+                      'bg-slate-100 text-slate-500'
+                    }`}>{trip.status}</span>
+                  </div>
+                  <p className="mt-2 text-xs text-slate-600">
+                    {(() => {
+                      const u = users.find(u => u.uid === trip.userId);
+                      if (trip.userName || trip.userEmail) return trip.userName || trip.userEmail;
+                      if (u) return u.displayName || u.email;
+                      return `${trip.userId?.slice(0, 8)}...`;
+                    })()}
+                  </p>
+                  <div className="mt-3 flex items-center gap-2">
+                    <button
+                      onClick={() => setExpandedTripId(expandedTripId === trip.id ? null : trip.id)}
+                      className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition">
+                      {expandedTripId === trip.id ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                      {expandedTripId === trip.id ? 'Hide' : 'Details'}
+                    </button>
+                    <button
+                      onClick={() => handleDeleteTrip(trip.id)}
+                      className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                  {expandedTripId === trip.id ? (
+                    <div className="mt-3 space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      {(trip.days || []).length === 0 ? (
+                        <p className="text-xs text-slate-400">No day plan available.</p>
+                      ) : (
+                        <div className="grid gap-2">
+                          {(trip.days || []).map((day: any) => (
+                            <div key={day.dayNumber} className="rounded-lg bg-white border border-slate-200 p-2.5">
+                              <p className="text-xs font-bold text-slate-900">Day {day.dayNumber}{day.title ? ` — ${day.title}` : ''}</p>
+                              <p className="mt-1 text-xs text-slate-500">Activities: {(day.activities || []).length}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+              ))}
+              <div className="px-4 pb-4">
+                <ResultPageNav page={tripsPage} total={tripsTotalPages} onPrev={() => setTripsPage(tripsPage - 1)} onNext={() => setTripsPage(tripsPage + 1)} />
+              </div>
+            </div>
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full min-w-[800px] text-left">
                 <thead className="bg-slate-50 border-b border-slate-100">
                   <tr>
                     {['Trip','Destination','Dates','Activities','Status','User','Actions'].map(h => (
-                      <th key={h} className="px-7 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">{h}</th>
+                      <th key={h} className="px-4 sm:px-7 py-3 sm:py-4 text-xs font-bold uppercase tracking-wider text-slate-400">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -637,15 +759,15 @@ export default function AdminDashboard() {
                   {pagedTrips.map(trip => (
                     <React.Fragment key={trip.id}>
                       <tr className="hover:bg-slate-50 transition-colors">
-                        <td className="px-7 py-4 font-bold text-slate-900 text-sm">{trip.title || 'Untitled'}</td>
-                        <td className="px-7 py-4 text-sm text-slate-600">
+                        <td className="px-4 sm:px-7 py-3 sm:py-4 font-bold text-slate-900 text-sm">{trip.title || 'Untitled'}</td>
+                        <td className="px-4 sm:px-7 py-3 sm:py-4 text-sm text-slate-600">
                           <div className="flex items-center gap-1.5"><MapPin size={12} className="text-purple-500" />{trip.destination || '—'}</div>
                         </td>
-                        <td className="px-7 py-4 text-xs text-slate-500">{trip.startDate || '—'} – {trip.endDate || '—'}</td>
-                        <td className="px-7 py-4 text-sm font-semibold text-slate-700">
+                        <td className="px-4 sm:px-7 py-3 sm:py-4 text-xs text-slate-500">{trip.startDate || '—'} – {trip.endDate || '—'}</td>
+                        <td className="px-4 sm:px-7 py-3 sm:py-4 text-sm font-semibold text-slate-700">
                           {(trip.days || []).reduce((a, d) => a + (d.activities?.length || 0), 0)}
                         </td>
-                        <td className="px-7 py-4">
+                        <td className="px-4 sm:px-7 py-3 sm:py-4">
                           <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                             trip.status === 'completed' ? 'bg-emerald-50 text-emerald-600' :
                             trip.status === 'confirmed' ? 'bg-purple-50 text-purple-600' :
@@ -653,7 +775,7 @@ export default function AdminDashboard() {
                             'bg-slate-100 text-slate-500'
                           }`}>{trip.status}</span>
                         </td>
-                        <td className="px-7 py-4 text-xs text-slate-700">
+                        <td className="px-4 sm:px-7 py-3 sm:py-4 text-xs text-slate-700">
                           {(() => {
                             const u = users.find(u => u.uid === trip.userId);
                             if (trip.userName || trip.userEmail) {
@@ -666,7 +788,7 @@ export default function AdminDashboard() {
                             );
                           })()}
                         </td>
-                        <td className="px-7 py-4">
+                        <td className="px-4 sm:px-7 py-3 sm:py-4">
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => setExpandedTripId(expandedTripId === trip.id ? null : trip.id)}
@@ -684,7 +806,7 @@ export default function AdminDashboard() {
                       </tr>
                       {expandedTripId === trip.id && (
                         <tr>
-                          <td colSpan={7} className="bg-slate-50 px-7 py-5">
+                          <td colSpan={7} className="bg-slate-50 px-4 sm:px-7 py-5">
                             <div className="space-y-4">
                               <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
                                 Day-by-day itinerary — {trip.title}
@@ -747,7 +869,7 @@ export default function AdminDashboard() {
             </div>
 
             <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
-              <div className="flex items-center justify-between px-8 py-6 border-b border-slate-100">
+              <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 md:px-8 py-5 sm:py-6 border-b border-slate-100">
                 <h2 className="text-xl font-black text-slate-900">
                   Contact messages <span className="text-slate-400 font-semibold text-base">({filteredMessages.length})</span>
                 </h2>
@@ -772,8 +894,8 @@ export default function AdminDashboard() {
               ) : (
                 <div className="divide-y divide-slate-100">
                   {filteredMessages.map(msg => (
-                    <div key={msg.id} className="px-8 py-5 hover:bg-slate-50 transition-colors">
-                      <div className="flex items-start justify-between gap-4">
+                    <div key={msg.id} className="px-4 sm:px-6 md:px-8 py-5 hover:bg-slate-50 transition-colors">
+                      <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-3 flex-wrap mb-2">
                             <span className="font-bold text-slate-900 text-sm">{msg.name}</span>
@@ -796,7 +918,7 @@ export default function AdminDashboard() {
                           </div>
                           <p className="text-sm text-slate-600 leading-relaxed line-clamp-2">{msg.message}</p>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex w-full sm:w-auto items-center justify-end gap-2 shrink-0">
                           <select
                             value={msg.status}
                             onChange={e => { void handleMessageStatus(msg.id, e.target.value as ContactMessage['status']); }}
@@ -978,7 +1100,7 @@ export default function AdminDashboard() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 16 }}
               onClick={e => e.stopPropagation()}
-              className="bg-white rounded-3xl shadow-2xl p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto"
+              className="bg-white rounded-3xl shadow-2xl p-5 sm:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto"
             >
               {/* Modal header */}
               <div className="flex items-start justify-between mb-6">
@@ -1050,7 +1172,7 @@ export default function AdminDashboard() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Price Range</label>
                     <input type="text" value={destForm.priceRange}

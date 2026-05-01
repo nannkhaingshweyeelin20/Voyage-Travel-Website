@@ -226,7 +226,7 @@ export default function ContactPage() {
         <p className="flex items-center justify-center gap-2 text-xs uppercase tracking-widest text-slate-500">
           <Mail size={13} /> Find Us On Instagram
         </p>
-        <p className="mt-3 text-4xl font-black text-slate-900">@Connect.Travelvoyage</p>
+        <p className="mt-3 text-2xl font-black text-slate-900">@Connect.Travelvoyage</p>
       </section>
       <Footer />
     </div>

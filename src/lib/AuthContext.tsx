@@ -207,6 +207,14 @@ async function migrateLegacyTrips(currentUser: AuthUser) {
   window.localStorage.setItem(migrationKey, '1');
 }
 
+async function tryMigrateLegacyTrips(currentUser: AuthUser) {
+  try {
+    await migrateLegacyTrips(currentUser);
+  } catch (error) {
+    console.warn('Legacy trip migration skipped after auth success.', error);
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -217,7 +225,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await apiFetch<MeResponse>('/api/auth/me');
       setUser({ uid: response.user.uid, email: response.user.email });
       setProfile(mapProfile(response.user));
-      await migrateLegacyTrips({ uid: response.user.uid, email: response.user.email });
+      await tryMigrateLegacyTrips({ uid: response.user.uid, email: response.user.email });
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         setUser(null);
@@ -248,7 +256,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     setUser({ uid: response.user.uid, email: response.user.email });
     setProfile(mapProfile(response.user));
-    await migrateLegacyTrips({ uid: response.user.uid, email: response.user.email });
+    await tryMigrateLegacyTrips({ uid: response.user.uid, email: response.user.email });
   };
 
   const register = async (name: string, email: string, pass: string) => {
