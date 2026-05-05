@@ -1356,8 +1356,16 @@ export default function Destinations() {
 
   /* load user itineraries */
   useEffect(() => {
-    if (!user) return;
-    itineraryService.getByUser(user.uid).then(setItineraries).catch(console.error);
+    if (!user) {
+      setItineraries([]);
+      return;
+    }
+
+    const unsubscribe = itineraryService.subscribeToUserItineraries(user.uid, (data) => {
+      setItineraries(data);
+    });
+
+    return unsubscribe;
   }, [user]);
 
   useEffect(() => {

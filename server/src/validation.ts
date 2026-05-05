@@ -1,6 +1,21 @@
 import { z } from 'zod';
 import { ensurePasswordLength } from './sanitize';
 
+const isAcceptedImageUrl = (value?: string) => {
+  if (!value) return true;
+
+  if (value.startsWith('/uploads/')) {
+    return true;
+  }
+
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
 const passwordSchema = z.string().superRefine((value, ctx) => {
   try {
     ensurePasswordLength(value);
@@ -116,7 +131,9 @@ export const destinationSchema = z.object({
   type: z.enum(['hotel', 'restaurant', 'attraction']),
   description: z.string().trim().max(5000).optional().or(z.literal('')),
   location: z.string().trim().max(191).optional().or(z.literal('')),
-  imageUrl: z.string().trim().url().optional().or(z.literal('')),
+  imageUrl: z.string().trim().max(1024).optional().or(z.literal('')).refine(isAcceptedImageUrl, {
+    message: 'Image URL must be http(s) or an uploaded /uploads/... path.',
+  }),
   priceRange: z.string().trim().max(80).optional().or(z.literal('')),
   rating: z.number().min(0).max(5).optional(),
 });
@@ -169,6 +186,8 @@ export const createBlogPostSchema = z.object({
   title: z.string().trim().min(3).max(191),
   excerpt: z.string().trim().min(10).max(500),
   content: z.string().trim().min(20).max(50000),
-  coverImage: z.string().trim().url().optional().or(z.literal('')),
+  coverImage: z.string().trim().max(1024).optional().or(z.literal('')).refine(isAcceptedImageUrl, {
+    message: 'Cover image must be http(s) or an uploaded /uploads/... path.',
+  }),
   tags: z.array(z.string().trim().min(1).max(40)).max(20).optional(),
 });

@@ -104,10 +104,13 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!profile?.uid) return;
     setTripsLoading(true);
-    itineraryService
-      .getByUser(profile.uid)
-      .then(setTrips)
-      .finally(() => setTripsLoading(false));
+
+    const unsubscribe = itineraryService.subscribeToUserItineraries(profile.uid, (data) => {
+      setTrips(data);
+      setTripsLoading(false);
+    });
+
+    return unsubscribe;
   }, [profile?.uid]);
 
   useEffect(() => {

@@ -46,6 +46,10 @@ type LandingPopularDestination = {
   category: 'Trending' | 'Beach' | 'City' | 'Nature' | 'Adventure';
 };
 
+type LandingListing = PropertyListing & {
+  imageUrl?: string;
+};
+
 export default function Landing() {
   const navigate = useNavigate();
 const { user, profile } = useAuth();
@@ -54,9 +58,9 @@ const { user, profile } = useAuth();
   const [activeCategory, setActiveCategory] = useState('All');
   const [popularFilter, setPopularFilter] = useState<'Trending' | 'Beach' | 'City' | 'Nature' | 'Adventure'>('Trending');
   const [wishlistIds, setWishlistIds] = useState<Set<string>>(new Set());
-  const [listings, setListings] = useState<PropertyListing[]>([]);
+  const [listings, setListings] = useState<LandingListing[]>([]);
   const [popularDestinations, setPopularDestinations] = useState<LandingPopularDestination[]>([]);
-  const [popularDestinationsTitle, setPopularDestinationsTitle] = useState('Destinations from Database');
+  const [popularDestinationsTitle, setPopularDestinationsTitle] = useState('Destination');
   const [nearYouEnabled, setNearYouEnabled] = useState(false);
   const [nearYouLabel, setNearYouLabel] = useState('Near You');
   const [loadingListings, setLoadingListings] = useState(true);
@@ -140,7 +144,7 @@ const { user, profile } = useAuth();
       id: destination.id,
       name: destination.name,
       country: destination.location || 'Travel destination',
-      image: resolvePlaceImage({
+      image: destination.imageUrl || resolvePlaceImage({
         name: destination.name,
         location: destination.location,
         type: destination.type,
@@ -152,7 +156,7 @@ const { user, profile } = useAuth();
     };
   }
 
-  function mapDestinationToListing(destination: Destination, index: number): PropertyListing {
+  function mapDestinationToListing(destination: Destination, index: number): LandingListing {
     const location = splitLocation(destination.location);
     return {
       id: destination.id,
@@ -166,6 +170,7 @@ const { user, profile } = useAuth();
       reviewCount: 80 + index * 17,
       isGuestFavourite: (destination.rating || 0) >= 4.7,
       imageKeyword: destination.imageUrl || `${destination.name} ${destination.location}`,
+      imageUrl: destination.imageUrl,
       beds: 1 + (index % 3),
       baths: 1 + (index % 2),
     };
@@ -173,11 +178,12 @@ const { user, profile } = useAuth();
 
   const quickDestinations = popularDestinations.slice(0, 6);
 
-  function getPropertyImage(listing: PropertyListing, index: number): string {
-    return resolvePlaceImage({
+  function getPropertyImage(listing: LandingListing, index: number): string {
+    return listing.imageUrl || resolvePlaceImage({
       name: listing.title,
       location: `${listing.city} ${listing.country}`,
       type: listing.propertyType,
+      imageUrl: listing.imageUrl,
       imageKeyword: listing.imageKeyword,
     }, index);
   }
@@ -193,7 +199,12 @@ const { user, profile } = useAuth();
       setItineraries([]);
       return;
     }
-    itineraryService.getByUser(profile.uid).then(setItineraries).catch(() => setItineraries([]));
+
+    const unsubscribe = itineraryService.subscribeToUserItineraries(profile.uid, (data) => {
+      setItineraries(data);
+    });
+
+    return unsubscribe;
   }, [profile?.uid]);
 
   useEffect(() => {
@@ -223,12 +234,12 @@ const { user, profile } = useAuth();
         const latest = await destinationService.getLatest({ limit: 12 });
         const mapped = latest.slice(0, 12).map((destination: Destination, index: number) => mapDestinationToPopular(destination, index));
         if (alive) {
-          setPopularDestinationsTitle('Destinations from Database');
+          setPopularDestinationsTitle('Destination');
           setPopularDestinations(mapped);
         }
       } catch {
         if (alive) {
-          setPopularDestinationsTitle('Destinations from Database');
+          setPopularDestinationsTitle('Destination');
           setPopularDestinations([]);
         }
       }
@@ -360,7 +371,7 @@ const { user, profile } = useAuth();
   };
 
   // Infer the Airbnb-style category from a listing's propertyType + city
-  function inferListingCategory(listing: PropertyListing): string {
+  function inferListingCategory(listing: LandingListing): string {
     const pt = (listing.propertyType || '').toLowerCase().trim();
     const city = (listing.city || '').toLowerCase();
     if (['houseboat', 'boat', 'yacht'].some(k => pt.includes(k))) return 'Boats';

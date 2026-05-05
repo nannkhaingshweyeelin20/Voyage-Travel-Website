@@ -100,6 +100,48 @@ import { normalizeEmail } from './sanitize';
 const app = express();
 const workspaceRoot = path.resolve(process.cwd());
 const uploadedDestinationImageDir = path.join(workspaceRoot, 'public', 'uploads', 'destinations');
+const uploadedBlogImageDir = path.join(workspaceRoot, 'public', 'uploads', 'blogs');
+
+async function saveUploadedImage(options: {
+  targetDir: string;
+  filename: string;
+  contentType: string;
+  data: string;
+  publicPathPrefix: string;
+}) {
+  if (!options.filename || !options.contentType || !options.data) {
+    return { status: 400, body: { message: 'Missing upload payload.' } };
+  }
+
+  if (!/^image\/(png|jpe?g|webp|gif)$/i.test(options.contentType)) {
+    return { status: 400, body: { message: 'Only PNG, JPEG, WEBP, and GIF images are supported.' } };
+  }
+
+  const buffer = Buffer.from(options.data, 'base64');
+  if (!buffer.length) {
+    return { status: 400, body: { message: 'Uploaded image is empty.' } };
+  }
+
+  if (buffer.length > 5 * 1024 * 1024) {
+    return { status: 400, body: { message: 'Image must be 5MB or smaller.' } };
+  }
+
+  const extension = path.extname(options.filename).toLowerCase() || ((): string => {
+    if (/image\/png/i.test(options.contentType)) return '.png';
+    if (/image\/webp/i.test(options.contentType)) return '.webp';
+    if (/image\/gif/i.test(options.contentType)) return '.gif';
+    return '.jpg';
+  })();
+
+  await fs.mkdir(options.targetDir, { recursive: true });
+  const storedName = `${Date.now()}-${randomUUID()}${extension}`;
+  await fs.writeFile(path.join(options.targetDir, storedName), buffer);
+
+  return {
+    status: 201,
+    body: { imageUrl: `${options.publicPathPrefix}/${storedName}` },
+  };
+}
 
 const authRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -607,37 +649,32 @@ app.post('/api/uploads/destination-image', requireAuth, requireAdmin, async (req
     const filename = typeof req.body?.filename === 'string' ? req.body.filename.trim() : '';
     const contentType = typeof req.body?.contentType === 'string' ? req.body.contentType.trim() : '';
     const data = typeof req.body?.data === 'string' ? req.body.data.trim() : '';
+    const result = await saveUploadedImage({
+      targetDir: uploadedDestinationImageDir,
+      filename,
+      contentType,
+      data,
+      publicPathPrefix: '/uploads/destinations',
+    });
+    return res.status(result.status).json(result.body);
+  } catch (error) {
+    next(error);
+  }
+});
 
-    if (!filename || !contentType || !data) {
-      return res.status(400).json({ message: 'Missing upload payload.' });
-    }
-
-    if (!/^image\/(png|jpe?g|webp|gif)$/i.test(contentType)) {
-      return res.status(400).json({ message: 'Only PNG, JPEG, WEBP, and GIF images are supported.' });
-    }
-
-    const buffer = Buffer.from(data, 'base64');
-    if (!buffer.length) {
-      return res.status(400).json({ message: 'Uploaded image is empty.' });
-    }
-
-    if (buffer.length > 5 * 1024 * 1024) {
-      return res.status(400).json({ message: 'Image must be 5MB or smaller.' });
-    }
-
-    const extension = path.extname(filename).toLowerCase() || ((): string => {
-      if (/image\/png/i.test(contentType)) return '.png';
-      if (/image\/webp/i.test(contentType)) return '.webp';
-      if (/image\/gif/i.test(contentType)) return '.gif';
-      return '.jpg';
-    })();
-
-    await fs.mkdir(uploadedDestinationImageDir, { recursive: true });
-    const storedName = `${Date.now()}-${randomUUID()}${extension}`;
-    await fs.writeFile(path.join(uploadedDestinationImageDir, storedName), buffer);
-
-    const imageUrl = `${req.protocol}://${req.get('host')}/uploads/destinations/${storedName}`;
-    return res.status(201).json({ imageUrl });
+app.post('/api/uploads/blog-image', requireAuth, async (req, res, next) => {
+  try {
+    const filename = typeof req.body?.filename === 'string' ? req.body.filename.trim() : '';
+    const contentType = typeof req.body?.contentType === 'string' ? req.body.contentType.trim() : '';
+    const data = typeof req.body?.data === 'string' ? req.body.data.trim() : '';
+    const result = await saveUploadedImage({
+      targetDir: uploadedBlogImageDir,
+      filename,
+      contentType,
+      data,
+      publicPathPrefix: '/uploads/blogs',
+    });
+    return res.status(result.status).json(result.body);
   } catch (error) {
     next(error);
   }

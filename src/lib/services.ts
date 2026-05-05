@@ -150,9 +150,86 @@ export interface BlogPost {
   updatedAt: string;
 }
 
+const normalizeUploadedImageUrl = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  if (trimmed.startsWith('/')) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith('uploads/')) {
+    return `/${trimmed}`;
+  }
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    try {
+      const parsed = new URL(trimmed);
+      if (parsed.pathname.startsWith('/uploads/')) {
+        return `${parsed.pathname}${parsed.search}`;
+      }
+      return trimmed;
+    } catch {
+      return trimmed;
+    }
+  }
+
+  return trimmed;
+};
+
+const mapApiBlogPost = (item: any): BlogPost => ({
+  id: String(item.id),
+  userId: String(item.userId || item.user_id || ''),
+  authorName: String(item.authorName || item.author_name || ''),
+  authorProfileImage: item.authorProfileImage || item.author_profile_image || undefined,
+  title: String(item.title || ''),
+  slug: String(item.slug || ''),
+  excerpt: String(item.excerpt || ''),
+  content: String(item.content || ''),
+  coverImage: normalizeUploadedImageUrl(item.coverImage || item.cover_image),
+  tags: Array.isArray(item.tags) ? item.tags.map((tag) => String(tag)) : [],
+  status: (item.status || 'pending') as BlogPost['status'],
+  createdAt: String(item.createdAt || item.created_at || ''),
+  updatedAt: String(item.updatedAt || item.updated_at || ''),
+});
+
+async function uploadImageFile(path: string, file: File) {
+  const data = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : '';
+      const base64 = result.includes(',') ? result.split(',')[1] : result;
+      if (!base64) {
+        reject(new Error('Could not read the selected image.'));
+        return;
+      }
+      resolve(base64);
+    };
+    reader.onerror = () => reject(new Error('Could not read the selected image.'));
+    reader.readAsDataURL(file);
+  });
+
+  const response = await apiFetch<{ imageUrl: string }>(path, {
+    method: 'POST',
+    body: JSON.stringify({
+      filename: file.name,
+      contentType: file.type,
+      data,
+    }),
+  });
+
+  return normalizeUploadedImageUrl(response.imageUrl) || response.imageUrl;
+}
+
 const ITINERARY_CHANGED_EVENT = 'voyage:itinerary-changed';
 
-function emitItineraryChanged() {
+export function notifyItineraryChanged() {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent(ITINERARY_CHANGED_EVENT));
   }
@@ -228,15 +305,63 @@ const mapApiItinerary = (item: any): Itinerary => ({
     : [],
 });
 
+const normalizeDestinationImageUrl = (value: unknown): string => {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return '';
+  }
+
+  if (trimmed.startsWith('/')) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith('uploads/')) {
+    return `/${trimmed}`;
+  }
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    try {
+      const parsed = new URL(trimmed);
+      // Keep external images (e.g. unsplash) untouched.
+      if (!parsed.pathname.startsWith('/uploads/')) {
+        return trimmed;
+      }
+
+      // Keep uploaded app images on the local /uploads path so Vite/public can serve them.
+      return `${parsed.pathname}${parsed.search}`;
+    } catch {
+      return trimmed;
+    }
+  }
+
+  return trimmed;
+};
+
+const mapApiDestination = (item: any): Destination => ({
+  id: String(item.id),
+  name: String(item.name || ''),
+  type: (item.type || 'attraction') as Destination['type'],
+  description: String(item.description || ''),
+  location: String(item.location || ''),
+  imageUrl: normalizeDestinationImageUrl(item.imageUrl || item.image_url),
+  priceRange: String(item.priceRange || item.price_range || ''),
+  rating: Number(item.rating ?? 4.5),
+});
+
 const normalizeMessageStatus = (status?: ContactMessage['status']): 'new' | 'replied' => {
   if (status === 'replied' || status === 'resolved') return 'replied';
   return 'new';
 };
+  notifyItineraryChanged();
 
 export const destinationService = {
   async getAll(): Promise<Destination[]> {
-    const response = await apiFetch<{ destinations: Destination[] }>('/api/destinations');
-    return response.destinations;
+    const response = await apiFetch<{ destinations: any[] }>('/api/destinations');
+    return Array.isArray(response.destinations) ? response.destinations.map(mapApiDestination) : [];
   },
   async getLatest(options?: { limit?: number; type?: Destination['type'] }): Promise<Destination[]> {
     const params = new URLSearchParams();
@@ -247,8 +372,8 @@ export const destinationService = {
       params.set('type', options.type);
     }
     const query = params.toString();
-    const response = await apiFetch<{ destinations: Destination[] }>(`/api/destinations/latest${query ? `?${query}` : ''}`);
-    return response.destinations;
+    const response = await apiFetch<{ destinations: any[] }>(`/api/destinations/latest${query ? `?${query}` : ''}`);
+    return Array.isArray(response.destinations) ? response.destinations.map(mapApiDestination) : [];
   },
   async search(options?: { query?: string; limit?: number; type?: Destination['type'] }): Promise<Destination[]> {
     const params = new URLSearchParams();
@@ -262,15 +387,15 @@ export const destinationService = {
       params.set('type', options.type);
     }
     const query = params.toString();
-    const response = await apiFetch<{ destinations: Destination[] }>(`/api/destinations/search${query ? `?${query}` : ''}`);
-    return response.destinations;
+    const response = await apiFetch<{ destinations: any[] }>(`/api/destinations/search${query ? `?${query}` : ''}`);
+    return Array.isArray(response.destinations) ? response.destinations.map(mapApiDestination) : [];
   },
   async create(data: Omit<Destination, 'id'>) {
-    const response = await apiFetch<{ destination: Destination }>('/api/destinations', {
+    const response = await apiFetch<{ destination: any }>('/api/destinations', {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    return response.destination;
+    return mapApiDestination(response.destination);
   },
   async uploadImage(file: File) {
     const data = await new Promise<string>((resolve, reject) => {
@@ -300,10 +425,11 @@ export const destinationService = {
     return response.imageUrl;
   },
   async update(id: string, data: Partial<Destination>) {
-    await apiFetch(`/api/destinations/${id}`, {
+    const response = await apiFetch<{ destination: any }>(`/api/destinations/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
+    return response.destination ? mapApiDestination(response.destination) : undefined;
   },
   async delete(id: string) {
     await apiFetch(`/api/destinations/${id}`, {
@@ -357,7 +483,7 @@ export const itineraryService = {
       }),
     });
 
-    emitItineraryChanged();
+    notifyItineraryChanged();
 
     if (response.itinerary) {
       return mapApiItinerary(response.itinerary);
@@ -381,7 +507,7 @@ export const itineraryService = {
         days: data.days,
       }),
     });
-    emitItineraryChanged();
+    notifyItineraryChanged();
   },
   async delete(id: string) {
     try {
@@ -393,7 +519,7 @@ export const itineraryService = {
         throw error;
       }
     }
-    emitItineraryChanged();
+    notifyItineraryChanged();
   },
   async getByUser(_userId: string): Promise<Itinerary[]> {
     const response = await apiFetch<{ itineraries: any[] }>('/api/itineraries/mine');
@@ -423,14 +549,14 @@ export const itineraryService = {
         },
       }),
     });
-    emitItineraryChanged();
+    notifyItineraryChanged();
   },
   async updateStatus(id: string, status: Itinerary['status']) {
     await apiFetch(`/api/itineraries/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ status }),
     });
-    emitItineraryChanged();
+    notifyItineraryChanged();
   }
 };
 
@@ -463,7 +589,7 @@ export const bookingService = {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    emitItineraryChanged();
+    notifyItineraryChanged();
     return mapApiBooking(response.booking);
   },
   async createWithTrip(data: BookingWithTripInput): Promise<{ booking: Booking; itinerary?: Itinerary; itineraryId?: string }> {
@@ -472,7 +598,7 @@ export const bookingService = {
       body: JSON.stringify(data),
     });
 
-    emitItineraryChanged();
+    notifyItineraryChanged();
 
     return {
       booking: mapApiBooking(response.booking),
@@ -489,7 +615,7 @@ export const bookingService = {
       method: 'PATCH',
       body: JSON.stringify({ status }),
     });
-    emitItineraryChanged();
+    notifyItineraryChanged();
   }
 };
 
@@ -588,19 +714,22 @@ export const favoritesService = {
 export const blogService = {
   async listApproved(): Promise<BlogPost[]> {
     const response = await apiFetch<{ posts: BlogPost[] }>('/api/blogs');
-    return response.posts;
+    return response.posts.map(mapApiBlogPost);
   },
   async listMine(): Promise<BlogPost[]> {
     const response = await apiFetch<{ posts: BlogPost[] }>('/api/blog/posts/mine');
-    return response.posts;
+    return response.posts.map(mapApiBlogPost);
   },
   async listForAdmin(): Promise<BlogPost[]> {
     const response = await apiFetch<{ posts: BlogPost[] }>('/api/blog/posts/admin');
-    return response.posts;
+    return response.posts.map(mapApiBlogPost);
   },
   async getBySlug(slug: string): Promise<BlogPost> {
     const response = await apiFetch<{ post: BlogPost }>(`/api/blog/posts/${slug}`);
-    return response.post;
+    return mapApiBlogPost(response.post);
+  },
+  async uploadCoverImage(file: File) {
+    return uploadImageFile('/api/uploads/blog-image', file);
   },
   async create(data: {
     title: string;
@@ -613,7 +742,7 @@ export const blogService = {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    return response.post;
+    return mapApiBlogPost(response.post);
   },
   async update(id: string, data: {
     title: string;
@@ -626,7 +755,7 @@ export const blogService = {
       method: 'PUT',
       body: JSON.stringify(data),
     });
-    return response.post;
+    return mapApiBlogPost(response.post);
   },
   async approve(id: string): Promise<void> {
     await apiFetch(`/api/blog/posts/${id}/approve`, { method: 'PATCH' });

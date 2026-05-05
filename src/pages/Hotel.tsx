@@ -34,8 +34,16 @@ export default function HotelPage() {
   const [addedId, setAddedId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) return;
-    itineraryService.getByUser(user.uid).then(setItineraries).catch(console.error);
+    if (!user) {
+      setItineraries([]);
+      return;
+    }
+
+    const unsubscribe = itineraryService.subscribeToUserItineraries(user.uid, (data) => {
+      setItineraries(data);
+    });
+
+    return unsubscribe;
   }, [user]);
 
   const fetchHotels = useCallback(async (dest: string) => {

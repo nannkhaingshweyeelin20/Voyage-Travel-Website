@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { apiFetch, ApiError } from './api';
-import { UserProfile } from './services';
+import { notifyItineraryChanged, UserProfile } from './services';
 
 interface AuthUser {
   uid: string;
@@ -34,6 +34,13 @@ type LegacyTrip = {
   endDate?: string;
   end_date?: string;
   days?: LegacyTripDay[];
+};
+
+type LegacyTripContainer = {
+  itineraries?: unknown[];
+  trips?: unknown[];
+  items?: unknown[];
+  data?: unknown[];
 };
 
 interface AuthContextType {
@@ -104,13 +111,73 @@ function sanitizeLegacyActivity(activity: LegacyTripActivity) {
   };
 }
 
+function looksLikeLegacyTrip(value: unknown): value is LegacyTrip {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+
+  const trip = value as LegacyTrip;
+  return Boolean(
+    trip.title ||
+    trip.destination ||
+    trip.startDate ||
+    trip.start_date ||
+    trip.endDate ||
+    trip.end_date ||
+    Array.isArray(trip.days),
+  );
+}
+
+function extractTripsFromValue(value: unknown): LegacyTrip[] {
+  if (!value) {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => extractTripsFromValue(item));
+  }
+
+  if (looksLikeLegacyTrip(value)) {
+    return [value];
+  }
+
+  if (typeof value !== 'object') {
+    return [];
+  }
+
+  const container = value as LegacyTripContainer;
+  const collected = [
+    ...(Array.isArray(container.itineraries) ? extractTripsFromValue(container.itineraries) : []),
+    ...(Array.isArray(container.trips) ? extractTripsFromValue(container.trips) : []),
+    ...(Array.isArray(container.items) ? extractTripsFromValue(container.items) : []),
+    ...(Array.isArray(container.data) ? extractTripsFromValue(container.data) : []),
+  ];
+
+  return collected;
+}
+
+function normalizeLegacyTrip(trip: LegacyTrip) {
+  const normalized = {
+    title: trip.title?.trim() || '',
+    destination: trip.destination?.trim() || '',
+    startDate: normalizeDateOnly(trip.startDate || trip.start_date),
+    endDate: normalizeDateOnly(trip.endDate || trip.end_date),
+  };
+
+  if (!normalized.title || !normalized.destination || !normalized.startDate || !normalized.endDate) {
+    return null;
+  }
+
+  return normalized;
+}
+
 function extractLegacyTrips(currentUser: AuthUser) {
   if (typeof window === 'undefined') {
     return [] as LegacyTrip[];
   }
 
   const keys = Object.keys(window.localStorage).filter((key) =>
-    key.startsWith('voyage_db_') && /(itinerar|trip)/i.test(key),
+    /(itinerar|trip)/i.test(key) || key.startsWith('voyage_'),
   );
 
   const trips: LegacyTrip[] = [];
@@ -120,14 +187,9 @@ function extractLegacyTrips(currentUser: AuthUser) {
       if (!raw) continue;
 
       const parsed = JSON.parse(raw) as unknown;
-      const collection = Array.isArray(parsed)
-        ? parsed
-        : parsed && typeof parsed === 'object' && Array.isArray((parsed as { itineraries?: unknown[] }).itineraries)
-          ? (parsed as { itineraries: unknown[] }).itineraries
-          : [];
+      const collection = extractTripsFromValue(parsed);
 
       for (const item of collection) {
-        if (!item || typeof item !== 'object') continue;
         const trip = item as LegacyTrip;
         const owner = (trip.userId || trip.uid || trip.email || '').trim().toLowerCase();
         if (owner && owner !== currentUser.uid.toLowerCase() && owner !== currentUser.email.toLowerCase()) {
@@ -148,11 +210,6 @@ async function migrateLegacyTrips(currentUser: AuthUser) {
     return;
   }
 
-  const migrationKey = `voyage_db_itinerary_migrated_${currentUser.uid}`;
-  if (window.localStorage.getItem(migrationKey) === '1') {
-    return;
-  }
-
   const legacyTrips = extractLegacyTrips(currentUser);
   if (legacyTrips.length === 0) {
     return;
@@ -160,21 +217,16 @@ async function migrateLegacyTrips(currentUser: AuthUser) {
 
   const existing = await apiFetch<{ itineraries: Array<{ title: string; destination: string; startDate: string; endDate: string }> }>('/api/itineraries/mine');
   const seen = new Set(existing.itineraries.map((trip) => buildTripSignature(trip)));
+  const migrated = new Set<string>();
 
   for (const legacyTrip of legacyTrips) {
-    const normalizedTrip = {
-      title: legacyTrip.title?.trim() || '',
-      destination: legacyTrip.destination?.trim() || '',
-      startDate: normalizeDateOnly(legacyTrip.startDate || legacyTrip.start_date),
-      endDate: normalizeDateOnly(legacyTrip.endDate || legacyTrip.end_date),
-    };
-
-    if (!normalizedTrip.title || !normalizedTrip.destination || !normalizedTrip.startDate || !normalizedTrip.endDate) {
+    const normalizedTrip = normalizeLegacyTrip(legacyTrip);
+    if (!normalizedTrip) {
       continue;
     }
 
     const signature = buildTripSignature(normalizedTrip);
-    if (seen.has(signature)) {
+    if (seen.has(signature) || migrated.has(signature)) {
       continue;
     }
 
@@ -184,6 +236,7 @@ async function migrateLegacyTrips(currentUser: AuthUser) {
     });
 
     seen.add(signature);
+    migrated.add(signature);
 
     const days = Array.isArray(legacyTrip.days) ? legacyTrip.days : [];
     for (const day of days) {
@@ -203,8 +256,7 @@ async function migrateLegacyTrips(currentUser: AuthUser) {
       }
     }
   }
-
-  window.localStorage.setItem(migrationKey, '1');
+  notifyItineraryChanged();
 }
 
 async function tryMigrateLegacyTrips(currentUser: AuthUser) {

@@ -368,6 +368,9 @@ export default function BlogPage() {
     coverImage: '',
     tags: '',
   });
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
+  const [coverImagePreview, setCoverImagePreview] = useState('');
+  const [coverImageError, setCoverImageError] = useState('');
 
   const mergedArticles = useMemo(() => {
     const seen = new Set<string>();
@@ -407,6 +410,9 @@ export default function BlogPage() {
     setFieldErrors({});
     setActionError('');
     setForm({ title: '', excerpt: '', content: '', coverImage: '', tags: '' });
+    setCoverImageFile(null);
+    setCoverImagePreview('');
+    setCoverImageError('');
   };
 
   const openCreateBlogModal = () => {
@@ -414,6 +420,9 @@ export default function BlogPage() {
     setFieldErrors({});
     setActionError('');
     setForm({ title: '', excerpt: '', content: '', coverImage: '', tags: '' });
+    setCoverImageFile(null);
+    setCoverImagePreview('');
+    setCoverImageError('');
     setShowCreateModal(true);
   };
 
@@ -428,7 +437,45 @@ export default function BlogPage() {
       coverImage: post.coverImage || '',
       tags: post.tags.join(', '),
     });
+    setCoverImageFile(null);
+    setCoverImagePreview(post.coverImage || '');
+    setCoverImageError('');
     setShowCreateModal(true);
+  };
+
+  const revokeCoverImagePreviewUrl = (value: string) => {
+    if (value.startsWith('blob:')) {
+      URL.revokeObjectURL(value);
+    }
+  };
+
+  const handleCoverImageSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
+    setCoverImageError('');
+    setFieldErrors((prev) => ({ ...prev, coverImage: undefined }));
+
+    if (!file) {
+      setCoverImageFile(null);
+      revokeCoverImagePreviewUrl(coverImagePreview);
+      setCoverImagePreview(form.coverImage || '');
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setCoverImageFile(null);
+      setCoverImageError('Please choose an image file.');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setCoverImageFile(null);
+      setCoverImageError('Image must be 5MB or smaller.');
+      return;
+    }
+
+    revokeCoverImagePreviewUrl(coverImagePreview);
+    setCoverImageFile(file);
+    setCoverImagePreview(URL.createObjectURL(file));
   };
 
   const loadAdminPosts = async () => {
@@ -506,7 +553,6 @@ export default function BlogPage() {
     const title = form.title.trim();
     const excerpt = form.excerpt.trim();
     const content = form.content.trim();
-    const coverImage = form.coverImage.trim();
     const tags = form.tags.split(',').map((tag) => tag.trim()).filter(Boolean);
     const nextFieldErrors: Partial<Record<BlogFormField, string>> = {};
 
@@ -519,17 +565,14 @@ export default function BlogPage() {
     if (content.length < 20) {
       nextFieldErrors.content = 'Content must be at least 20 characters.';
     }
-    if (coverImage) {
-      try {
-        new URL(coverImage);
-      } catch {
-        nextFieldErrors.coverImage = 'Cover image must be a valid URL.';
-      }
-    }
     if (tags.length > 20) {
       nextFieldErrors.tags = 'Please provide at most 20 tags.';
     } else if (tags.some((tag) => tag.length > 40)) {
       nextFieldErrors.tags = 'Each tag must be 40 characters or less.';
+    }
+
+    if (coverImageError) {
+      nextFieldErrors.coverImage = coverImageError;
     }
 
     if (Object.keys(nextFieldErrors).length > 0) {
@@ -539,6 +582,11 @@ export default function BlogPage() {
     }
 
     try {
+      let coverImage = form.coverImage.trim();
+      if (coverImageFile) {
+        coverImage = (await blogService.uploadCoverImage(coverImageFile)) || '';
+      }
+
       const payload = {
         title,
         excerpt,
@@ -1171,8 +1219,8 @@ export default function BlogPage() {
       </section>
 
       {showCreateModal && (
-        <div className="fixed inset-0 z-[120] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-2xl bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 z-[620] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-3xl border border-slate-200 shadow-2xl">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
               <h3 className="text-lg font-black text-slate-900">Create Blog Post</h3>
               <button
@@ -1219,13 +1267,20 @@ export default function BlogPage() {
                 {fieldErrors.content ? <p className="text-xs text-rose-600">{fieldErrors.content}</p> : null}
               </div>
               <div className="space-y-1.5">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">Cover Image URL</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">Upload Cover Image</label>
                 <input
-                  value={form.coverImage}
-                  onChange={(e) => setForm((prev) => ({ ...prev, coverImage: e.target.value }))}
-                  placeholder="Cover image URL (optional)"
-                  className={`w-full px-4 py-3 rounded-xl border text-sm ${fieldErrors.coverImage ? 'border-rose-300 bg-rose-50/40' : 'border-slate-200'}`}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  onChange={handleCoverImageSelected}
+                  className={`w-full px-4 py-3 rounded-xl border text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-purple-50 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-purple-700 hover:file:bg-purple-100 ${fieldErrors.coverImage || coverImageError ? 'border-rose-300 bg-rose-50/40' : 'border-slate-200'}`}
                 />
+                <p className="text-xs text-slate-500">PNG, JPG, WEBP, or GIF up to 5MB.</p>
+                {(coverImagePreview || form.coverImage) ? (
+                  <div className="rounded-2xl overflow-hidden border border-slate-200 h-36 bg-slate-50">
+                    <img src={coverImagePreview || form.coverImage} alt="Cover preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  </div>
+                ) : null}
+                {coverImageError ? <p className="text-xs text-rose-600">{coverImageError}</p> : null}
                 {fieldErrors.coverImage ? <p className="text-xs text-rose-600">{fieldErrors.coverImage}</p> : null}
               </div>
               <div className="space-y-1.5">

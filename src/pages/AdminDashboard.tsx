@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
 import { bookingService, Booking, destinationService, Destination, getDynamicImage, userService, UserProfile, itineraryService, Itinerary, messageService, ContactMessage } from '../lib/services';
 import { motion, AnimatePresence } from 'motion/react';
+import Footer from '../components/Footer';
 import {
   BookOpen, CheckCircle, Clock, MapPin, ShieldCheck, Users, XCircle,
   TrendingUp, Globe, Plane, AlertCircle, Search, LayoutGrid, RefreshCw,
@@ -28,15 +29,29 @@ function destImg(dest: string) {
 }
 
 /* ── Pagination helper component ── */
-function ResultPageNav({ page, total, onPrev, onNext }: { page: number; total: number; onPrev: () => void; onNext: () => void }) {
+function ResultPageNav({ page, total, onPrev, onNext, onSelect }: { page: number; total: number; onPrev: () => void; onNext: () => void; onSelect: (page: number) => void }) {
   if (total <= 1) return null;
+
+  const pages = Array.from({ length: total }, (_, index) => index + 1);
+
   return (
     <div className="flex items-center justify-center gap-3 mt-8">
       <button onClick={onPrev} disabled={page === 1}
         className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-slate-200 bg-white text-sm font-semibold hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition">
         <ChevronLeft size={15} /> Prev
       </button>
-      <span className="text-sm font-medium text-slate-600">Page {page} of {total}</span>
+      <div className="flex items-center gap-2 overflow-x-auto max-w-full py-1">
+        {pages.map((pageNumber) => (
+          <button
+            key={pageNumber}
+            onClick={() => onSelect(pageNumber)}
+            aria-current={pageNumber === page ? 'page' : undefined}
+            className={`min-w-10 px-3 py-2 rounded-xl border text-sm font-semibold transition ${pageNumber === page ? 'border-purple-600 bg-purple-600 text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}
+          >
+            {pageNumber}
+          </button>
+        ))}
+      </div>
       <button onClick={onNext} disabled={page === total}
         className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-slate-200 bg-white text-sm font-semibold hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition">
         Next <ChevronRight size={15} />
@@ -69,6 +84,8 @@ export default function AdminDashboard() {
 
   // destinations tab state
   const [destSort, setDestSort] = useState<'rating' | 'name'>('rating');
+  const [destPage, setDestPage] = useState(1);
+  const DESTINATIONS_PER_PAGE = 8;
   const [destAddOpen, setDestAddOpen] = useState(false);
   const [destEditItem, setDestEditItem] = useState<Destination | null>(null);
   const [destForm, setDestForm] = useState<Omit<Destination, 'id'>>({
@@ -78,6 +95,7 @@ export default function AdminDashboard() {
   const [destImageFile, setDestImageFile] = useState<File | null>(null);
   const [destImagePreview, setDestImagePreview] = useState('');
   const [destImageError, setDestImageError] = useState('');
+  const [destSaveError, setDestSaveError] = useState('');
 
   const loadMessages = async () => {
     const nextMessages = await messageService.getAll();
@@ -142,6 +160,7 @@ export default function AdminDashboard() {
     setDestImageFile(null);
     setDestImagePreview('');
     setDestImageError('');
+    setDestSaveError('');
     setDestAddOpen(true);
   };
   const openDestEdit = (dest: Destination) => {
@@ -150,11 +169,13 @@ export default function AdminDashboard() {
     setDestImageFile(null);
     setDestImagePreview(dest.imageUrl || '');
     setDestImageError('');
+    setDestSaveError('');
     setDestAddOpen(true);
   };
   const handleSaveDest = async (e: React.FormEvent) => {
     e.preventDefault();
     setDestSaving(true);
+    setDestSaveError('');
     try {
       let nextImageUrl = destForm.imageUrl;
       if (destImageFile) {
@@ -162,18 +183,22 @@ export default function AdminDashboard() {
       }
 
       const nextDestForm = { ...destForm, imageUrl: nextImageUrl };
+      setDestForm(nextDestForm);
 
       if (destEditItem) {
         await destinationService.update(destEditItem.id, nextDestForm);
-        setDestinations(ds => ds.map(d => d.id === destEditItem.id ? { ...d, ...nextDestForm } : d));
       } else {
-        const result = await destinationService.create(nextDestForm);
-        if (result && (result as any).id) {
-          setDestinations(ds => [...ds, { id: (result as any).id, ...nextDestForm }]);
-        }
+        await destinationService.create(nextDestForm);
       }
+
+      const refreshedDestinations = await destinationService.getAll();
+      setDestinations(refreshedDestinations);
+      setDestImageFile(null);
       setDestAddOpen(false);
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      setDestSaveError(err instanceof Error ? err.message : 'Could not save destination.');
+    }
     finally { setDestSaving(false); }
   };
 
@@ -275,6 +300,25 @@ export default function AdminDashboard() {
   const pagedTrips = filteredTrips.slice((tripsPage - 1) * TRIPS_PER_PAGE, tripsPage * TRIPS_PER_PAGE);
   const tripsTotalPages = Math.ceil(filteredTrips.length / TRIPS_PER_PAGE);
   const filteredMessages = messages.filter(m => !search || m.name?.toLowerCase().includes(search.toLowerCase()) || m.topic?.toLowerCase().includes(search.toLowerCase()) || m.email?.toLowerCase().includes(search.toLowerCase()));
+  const sortedDestinations = [...destinations]
+    .sort((a, b) => destSort === 'rating' ? b.rating - a.rating : a.name.localeCompare(b.name));
+  const destTotalPages = Math.ceil(sortedDestinations.length / DESTINATIONS_PER_PAGE);
+  const pagedDestinations = sortedDestinations.slice((destPage - 1) * DESTINATIONS_PER_PAGE, destPage * DESTINATIONS_PER_PAGE);
+
+  useEffect(() => {
+    setDestPage(1);
+  }, [destSort]);
+
+  useEffect(() => {
+    if (destTotalPages === 0) {
+      if (destPage !== 1) setDestPage(1);
+      return;
+    }
+
+    if (destPage > destTotalPages) {
+      setDestPage(destTotalPages);
+    }
+  }, [destPage, destTotalPages]);
 
   if (loading) return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -743,7 +787,7 @@ export default function AdminDashboard() {
                 </div>
               ))}
               <div className="px-4 pb-4">
-                <ResultPageNav page={tripsPage} total={tripsTotalPages} onPrev={() => setTripsPage(tripsPage - 1)} onNext={() => setTripsPage(tripsPage + 1)} />
+                <ResultPageNav page={tripsPage} total={tripsTotalPages} onPrev={() => setTripsPage(tripsPage - 1)} onNext={() => setTripsPage(tripsPage + 1)} onSelect={setTripsPage} />
               </div>
             </div>
             <div className="hidden md:block overflow-x-auto">
@@ -846,7 +890,7 @@ export default function AdminDashboard() {
                 </tbody>
               </table>
               {/* Pagination controls for trips tab */}
-              <ResultPageNav page={tripsPage} total={tripsTotalPages} onPrev={() => setTripsPage(tripsPage - 1)} onNext={() => setTripsPage(tripsPage + 1)} />
+                <ResultPageNav page={tripsPage} total={tripsTotalPages} onPrev={() => setTripsPage(tripsPage - 1)} onNext={() => setTripsPage(tripsPage + 1)} onSelect={setTripsPage} />
             </div>
           </div>
         )}
@@ -985,11 +1029,12 @@ export default function AdminDashboard() {
                 </button>
               </div>
             ) : (
+              <>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                {[...destinations]
-                  .sort((a, b) => destSort === 'rating' ? b.rating - a.rating : a.name.localeCompare(b.name))
+                {pagedDestinations
                   .map((dest, i) => {
-                    const isTrending = destSort === 'rating' && i < 3;
+                    const absoluteIndex = (destPage - 1) * DESTINATIONS_PER_PAGE + i;
+                    const isTrending = destSort === 'rating' && absoluteIndex < 3;
                     const typeColors: Record<string, string> = {
                       hotel: 'bg-sky-50 text-sky-600',
                       restaurant: 'bg-rose-50 text-rose-600',
@@ -1080,10 +1125,19 @@ export default function AdminDashboard() {
                     );
                   })}
               </div>
+              <ResultPageNav
+                page={destPage}
+                total={destTotalPages}
+                onPrev={() => setDestPage(destPage - 1)}
+                onNext={() => setDestPage(destPage + 1)}
+                onSelect={setDestPage}
+              />
+              </>
             )}
           </div>
         )}
       </div>
+      <Footer />
 
       {/* ── Destination Add / Edit Modal ── */}
       <AnimatePresence>
@@ -1092,7 +1146,7 @@ export default function AdminDashboard() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4"
+            className="fixed inset-0 z-[620] bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4"
             onClick={() => setDestAddOpen(false)}
           >
             <motion.div
@@ -1163,6 +1217,9 @@ export default function AdminDashboard() {
                   <p className="mt-2 text-xs text-slate-500">PNG, JPG, WEBP, or GIF up to 5MB.</p>
                   {destImageError && (
                     <p className="mt-2 text-xs font-semibold text-rose-600">{destImageError}</p>
+                  )}
+                  {destSaveError && (
+                    <p className="mt-2 text-xs font-semibold text-rose-600">{destSaveError}</p>
                   )}
                   {(destImagePreview || destForm.imageUrl) && (
                     <div className="mt-2 rounded-xl overflow-hidden h-28 border border-slate-200">

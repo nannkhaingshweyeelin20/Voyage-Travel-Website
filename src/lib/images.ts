@@ -91,6 +91,7 @@ export function resolvePlaceImage(shape: ImageShape, index = 0): string {
     shape.image_url,
     shape.photoUrl,
     shape.photo_url,
+    shape.imageKeyword,
     shape.photos,
   ]);
 
